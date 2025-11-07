@@ -1,4 +1,4 @@
-AC_INIT([libtirpc],[1.3.6])
+AC_INIT([libtirpc],[1.3.7])
 AM_INIT_AUTOMAKE([silent-rules])
 AM_SILENT_RULES([yes])
 AC_CONFIG_SRCDIR([src/auth_des.c])
@@ -77,6 +77,19 @@ if test "x$enable_ipv6" != xno; then
 	AC_DEFINE(INET6, 1, [Define to 1 if IPv6 is available])
 fi
 
+# RPC database support
+AC_ARG_ENABLE(rpcdb,
+    [AS_HELP_STRING([--enable-rpcdb], [Enable RPC Database support @<:@default=no@:>@])],
+    [], [enable_rpcdb=no])
+AM_CONDITIONAL(RPCDB, test "x$enable_rpcdb" = xyes)
+if test "x$enable_rpcdb" != "xno"; then
+    AC_CHECK_FUNCS([getrpcent getrpcbyname getrpcbynumber], [have_rpcdb=yes])
+
+    if test "x$have_rpcdb" = "xyes"; then
+        AC_DEFINE([RPCDB], [1], [Define if RPC database support is available])
+    fi
+fi
+
 AC_ARG_ENABLE(symvers,
 	[AS_HELP_STRING([--disable-symvers],[Disable symbol versioning @<:@default=no@:>@])],
       [],[enable_symvers=maybe])
@@ -96,6 +109,33 @@ if test "x$enable_symvers" = xmaybe; then
 fi
 
 AM_CONDITIONAL(SYMVERS, test "x$enable_symvers" = xyes)
+
+# Generate symbol lists for version script
+if test "x$enable_gssapi" = "xyes"; then
+    GSS_SYMBOLS="_svcauth_gss; authgss_create; authgss_create_default; authgss_free_private_data; authgss_get_private_data; authgss_service; gss_log_debug; gss_log_hexdump; gss_log_status; rpc_gss_get_error; rpc_gss_get_mech_info; rpc_gss_get_mechanisms; rpc_gss_get_principal_name; rpc_gss_get_versions; rpc_gss_qop_to_num; rpc_gss_seccreate; rpc_gss_set_callback; rpc_gss_set_defaults; rpc_gss_set_svc_name; rpc_gss_svc_max_data_length;"
+
+    GSS_SYMBOLS_031="svcauth_gss_get_principal; svcauth_gss_set_svc_name;"
+else
+    GSS_SYMBOLS=""
+    GSS_SYMBOLS_031=""
+fi
+
+if test "x$enable_authdes" = "xyes"; then
+    DES_SYMBOLS="cbc_crypt; ecb_crypt; xdr_authdes_cred; xdr_authdes_verf; xdr_rpc_gss_cred; xdr_rpc_gss_data; xdr_rpc_gss_init_args; xdr_rpc_gss_init_res;"
+else
+    DES_SYMBOLS=""
+fi
+
+if test "x$enable_rpcdb" = "xyes"; then
+    RPCDB_SYMBOLS="endrpcent; getrpcent; getrpcbynumber; getrpcbyname; setrpcent;"
+else
+    RPCDB_SYMBOLS=""
+fi
+
+AC_SUBST([GSS_SYMBOLS])
+AC_SUBST([GSS_SYMBOLS_031])
+AC_SUBST([DES_SYMBOLS])
+AC_SUBST([RPCDB_SYMBOLS])
 
 AC_CANONICAL_BUILD
 # Check for which host we are on and setup a few things
@@ -167,7 +207,16 @@ AC_CHECK_FUNCS([getpeereid getrpcbyname getrpcbynumber setrpcent endrpcent getrp
 AC_CHECK_TYPES(struct rpcent,,, [
       #include <netdb.h>])
 AC_CONFIG_FILES([Makefile src/Makefile man/Makefile doc/Makefile])
+AC_CONFIG_FILES([src/libtirpc.map])
 AC_CONFIG_FILES([libtirpc.pc])
 AC_OUTPUT
 
+# Configuration summary
+AC_MSG_NOTICE([
+libtirpc configuration summary:
+  GSS-API support: $enable_gssapi
+  DES crypto support: $enable_authdes
+  RPC database support: $enable_rpcdb
+  Symbol versioning: $enable_symvers
+])
 
