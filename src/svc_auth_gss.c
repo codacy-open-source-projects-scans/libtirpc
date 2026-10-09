@@ -1117,7 +1117,7 @@ rpc_gss_get_principal_name(rpc_gss_principal_t *principal, char *mechanism,
 {
 	OM_uint32 maj_stat, min_stat;
 	rpc_gss_principal_t result;
-	size_t nodelen, secdomlen;
+	size_t nodelen, secdomlen, alloclen;
 	gss_name_t name, mechname;
 	gss_buffer_desc namebuf;
 	rpc_gss_OID oid;
@@ -1135,7 +1135,8 @@ rpc_gss_get_principal_name(rpc_gss_principal_t *principal, char *mechanism,
 	if (secdomain != NULL)
 		secdomlen = strlen(secdomain) + 1;
 	namebuf.length = strlen(user_name) + nodelen + secdomlen;
-	namebuf.value = calloc(1, namebuf.length);
+	alloclen = namebuf.length + 1; /* include terminating NULL for C-string ops */
+	namebuf.value = calloc(1, alloclen);
 	if (namebuf.value == NULL)
 		return FALSE;
 	(void)strcpy(namebuf.value, user_name);

@@ -89,6 +89,9 @@ xdr_rpcb(
  * serialize the rpcb elements.
  */
 
+/* Cap decoded list length to prevent memory exhaustion from malicious data */
+#define RPCBLIST_DECODE_MAX_NODES 1024
+
 bool_t
 xdr_rpcblist_ptr(
 	XDR *xdrs,
@@ -101,6 +104,7 @@ xdr_rpcblist_ptr(
 	 */
 	bool_t more_elements;
 	int freeing = (xdrs->x_op == XDR_FREE);
+	int node_count = 0;
 	rpcblist_ptr next;
 	rpcblist_ptr next_copy;
 
@@ -112,6 +116,10 @@ xdr_rpcblist_ptr(
 		}
 		if (! more_elements) {
 			return (TRUE);  /* we are done */
+		}
+		if (xdrs->x_op == XDR_DECODE &&
+		    ++node_count > RPCBLIST_DECODE_MAX_NODES) {
+			return (FALSE);
 		}
 		/*
 		 * the unfortunate side effect of non-recursion is that in
@@ -178,6 +186,9 @@ xdr_rpcb_entry(
 	return (TRUE);
 }
 
+/* Cap decoded list length to prevent memory exhaustion from malicious data */
+#define RPCB_ENTRY_LIST_DECODE_MAX_NODES 1024
+
 bool_t
 xdr_rpcb_entry_list_ptr(
 	XDR *xdrs,
@@ -190,6 +201,7 @@ xdr_rpcb_entry_list_ptr(
 	 */
 	bool_t more_elements;
 	int freeing = (xdrs->x_op == XDR_FREE);
+	int node_count = 0;
 	rpcb_entry_list_ptr next;
 	rpcb_entry_list_ptr next_copy;
 
@@ -201,6 +213,10 @@ xdr_rpcb_entry_list_ptr(
 		}
 		if (! more_elements) {
 			return (TRUE);  /* we are done */
+		}
+		if (xdrs->x_op == XDR_DECODE &&
+		    ++node_count > RPCB_ENTRY_LIST_DECODE_MAX_NODES) {
+			return (FALSE);
 		}
 		/*
 		 * the unfortunate side effect of non-recursion is that in

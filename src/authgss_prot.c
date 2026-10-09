@@ -51,6 +51,9 @@
 /* additional space needed for encoding */
 #define RPC_SLACK_SPACE 1024
 
+/* upper bound on decoded RPCSEC_GSS wrapped payload (16 MB) */
+#define RPCSEC_GSS_MAX_UNWRAP (16U * 1024U * 1024U)
+
 bool_t
 xdr_rpc_gss_buf(XDR *xdrs, gss_buffer_t buf, u_int maxsize)
 {
@@ -227,12 +230,12 @@ xdr_rpc_gss_unwrap_data(XDR *xdrs, xdrproc_t xdr_func, caddr_t xdr_ptr,
 
 	if (svc == RPCSEC_GSS_SVC_INTEGRITY) {
 		/* Decode databody_integ. */
-		if (!xdr_rpc_gss_buf(xdrs, &databuf, (u_int)-1)) {
+		if (!xdr_rpc_gss_buf(xdrs, &databuf, RPCSEC_GSS_MAX_UNWRAP)) {
 			LIBTIRPC_DEBUG(1, ("xdr_rpc_gss_unwrap_data: decode databody_integ failed"));
 			return (FALSE);
 		}
 		/* Decode checksum. */
-		if (!xdr_rpc_gss_buf(xdrs, &wrapbuf, (u_int)-1)) {
+		if (!xdr_rpc_gss_buf(xdrs, &wrapbuf, RPCSEC_GSS_MAX_UNWRAP)) {
 			gss_release_buffer(&min_stat, &databuf);
 			LIBTIRPC_DEBUG(1, ("xdr_rpc_gss_unwrap_data: decode checksum failed"));
 			return (FALSE);
